@@ -1,0 +1,585 @@
+/* Secret Code: minimal, flat, dark. */
+
+:root {
+  --bg: #1d1d1f;
+  --panel: #262628;
+  --line: #3a3a3d;
+  --text: #ececec;
+  --muted: #a3a3a8;
+  --gold: #c9a96e;
+  --gold-strong: #e2b553;
+  --danger: #e0786b;
+  --ok: #8fcf8f;
+  --ink: #1b1b1b;
+
+  --c-yellow: #f4e4a1;
+  --c-green: #bfe0b6;
+  --c-blue: #b8d3ee;
+  --c-purple: #d5c5ee;
+  --c-white: #f3f1ea;
+
+  --radius: 8px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h2 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.875rem;
+}
+.error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  min-height: 0;
+}
+.error:empty {
+  display: none;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ---- Buttons & inputs ---------------------------------------------------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #313134;
+  color: var(--text);
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) {
+  border-color: #5a5a5e;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn.primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--gold-strong);
+  border-color: var(--gold-strong);
+}
+.btn.ghost {
+  background: transparent;
+}
+.btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--ink);
+}
+.btn.small {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.875rem;
+}
+.btn.big {
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+
+input[type='text'] {
+  font: inherit;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #141415;
+  color: var(--text);
+  min-width: 0;
+}
+input[type='text']:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold-strong);
+  outline-offset: 2px;
+}
+
+/* ---- Screens ------------------------------------------------------------- */
+
+.screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 16px;
+}
+.screen.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+}
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.join-form {
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+}
+.join-form label {
+  font-weight: 600;
+}
+
+.net-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 8px 16px;
+  text-align: center;
+  background: #4a3d22;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* ---- Game chrome ----------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  max-width: 1000px;
+  margin: 0 auto 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.brand,
+#round-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+#round-label {
+  font-weight: 400;
+}
+.me {
+  margin-left: auto;
+  text-align: right;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stack > div:empty {
+  display: none;
+}
+
+.banner {
+  max-width: 1000px;
+  margin: 0 auto 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.banner.warn {
+  border-color: var(--danger);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+/* ---- Lobby --------------------------------------------------------------- */
+
+.lobby {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---- Player list ----------------------------------------------------------- */
+
+.plist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.plist li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+.plist li:last-child {
+  border-bottom: 0;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--ok);
+}
+.dot.off {
+  background: transparent;
+  border: 1.5px solid var(--muted);
+}
+.pname {
+  overflow-wrap: anywhere;
+}
+.you {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.ptag {
+  font-size: 0.8rem;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 8px;
+}
+.ptag.out {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.pscore {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ---- Play layout ----------------------------------------------------------- */
+
+.headline {
+  max-width: 1000px;
+  margin: 0 auto 14px;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.play-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(300px, 380px);
+  gap: 28px;
+  justify-content: center;
+  align-items: start;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* ---- Cards --------------------------------------------------------------- */
+
+.card {
+  appearance: none;
+  font: inherit;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius);
+  border: 1px solid #e9e6dc;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.card:disabled {
+  cursor: default;
+}
+.card .letter {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.card .num {
+  font-size: 0.95rem;
+  line-height: 1.1;
+}
+.card svg {
+  width: 22px;
+  height: 22px;
+  fill: #000;
+  margin-top: 3px;
+}
+
+.c-yellow {
+  background: var(--c-yellow);
+}
+.c-green {
+  background: var(--c-green);
+}
+.c-blue {
+  background: var(--c-blue);
+}
+.c-purple {
+  background: var(--c-purple);
+}
+.c-white {
+  background: var(--c-white);
+}
+
+.card.selected,
+.card.solution {
+  outline: 4px solid var(--gold-strong);
+  outline-offset: 2px;
+  transform: translateY(-3px);
+}
+.card.dim {
+  opacity: 0.3;
+}
+
+/* ---- Rules --------------------------------------------------------------- */
+
+.rules-panel {
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.order-note {
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rules li {
+  display: grid;
+  grid-template-columns: 1.6em 1fr auto;
+  gap: 4px 6px;
+  align-items: baseline;
+}
+.rules .rnum {
+  color: var(--gold);
+  font-size: 1.1rem;
+}
+.rules .tick {
+  color: var(--ok);
+  font-weight: 700;
+}
+.rules .detail {
+  grid-column: 2 / 4;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ---- Selection bar ----------------------------------------------------------- */
+
+.actionbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.slots {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+.slot {
+  flex: 1;
+  max-width: 52px;
+  height: 44px;
+  border: 1px dashed #5a5a5e;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.slot.filled {
+  border: 1px solid var(--gold);
+}
+.submit {
+  min-width: 110px;
+}
+
+/* ---- Results ------------------------------------------------------------- */
+
+.result-box {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: var(--panel);
+}
+.result-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.confirm-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---- Minimal motion ----------------------------------------------------------- */
+
+.shake {
+  animation: shake 0.4s ease;
+}
+@keyframes shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+  20%,
+  60% {
+    translate: -6px 0;
+  }
+  40%,
+  80% {
+    translate: 6px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shake {
+    animation: none;
+  }
+  .card {
+    transition: none;
+  }
+}
+
+/* ---- Phone ------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .play-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .grid {
+    gap: 6px;
+  }
+  .card {
+    gap: 1px;
+    padding: 2px 0;
+  }
+  .card .letter {
+    font-size: 1.2rem;
+  }
+  .card .num {
+    font-size: 0.78rem;
+  }
+  .card svg {
+    width: 15px;
+    height: 15px;
+    margin-top: 1px;
+  }
+  .card.selected,
+  .card.solution {
+    outline-width: 3px;
+    outline-offset: 1px;
+  }
+  .headline {
+    font-size: 1rem;
+  }
+  .topbar {
+    gap: 8px;
+    font-size: 0.9rem;
+  }
+
+  /* Sticky selection bar at the bottom of the screen */
+  .actionbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+  body.has-actionbar .screen {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}

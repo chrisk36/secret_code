@@ -1,0 +1,14 @@
+# Render Blueprint: one free Node web service that serves the game and its WebSocket.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: secret-code
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Secret Code: a multiplayer puzzle race. Find the one set of 4 cards that matches every rule." />
+    <meta name="theme-color" content="#1d1d1f" />
+    <title>Secret Code</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='5' fill='%23f4e4a1' stroke='%23c9a96e' stroke-width='2'/%3E%3Cpath d='M16 7l9 9-9 9-9-9z' fill='%231d1d1f'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="net-banner" class="net-banner" role="status" hidden>Reconnecting…</div>
+
+    <!-- Waiting for the first connection -->
+    <section id="screen-connecting" class="screen center">
+      <h1 class="title">Secret Code</h1>
+      <p id="connecting-msg" class="muted" role="status">Connecting…</p>
+    </section>
+
+    <!-- This player was opened in another tab -->
+    <section id="screen-replaced" class="screen center" hidden>
+      <h1 class="title">Secret Code</h1>
+      <p id="replaced-msg" class="muted">You opened the game in another tab.</p>
+      <div class="stack">
+        <button id="takeover-btn" class="btn primary" type="button">Play in this tab</button>
+        <button id="new-player-btn" class="btn" type="button" hidden>Join as a new player</button>
+      </div>
+    </section>
+
+    <!-- Username -->
+    <section id="screen-join" class="screen center" hidden>
+      <h1 class="title">Secret Code</h1>
+      <form id="join-form" class="stack join-form" novalidate>
+        <label for="join-name">Username</label>
+        <input
+          id="join-name"
+          name="name"
+          type="text"
+          maxlength="16"
+          autocomplete="nickname"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="Your name"
+          aria-describedby="join-error"
+        />
+        <p id="join-error" class="error" role="alert"></p>
+        <button id="join-btn" class="btn primary" type="submit">Join</button>
+      </form>
+      <p id="join-info" class="muted small"></p>
+      <div id="join-full" class="stack" hidden>
+        <p>The room is full. You can watch until a seat opens.</p>
+        <button id="watch-btn" class="btn" type="button">Watch as a spectator</button>
+      </div>
+    </section>
+
+    <!-- Game -->
+    <section id="screen-game" class="screen" hidden>
+      <header class="topbar">
+        <span class="brand">Secret Code</span>
+        <span id="round-label" class="muted"></span>
+        <span id="me-label" class="me"></span>
+      </header>
+
+      <div id="banner" class="banner" role="status" hidden>
+        <span id="banner-text"></span>
+        <button id="banner-join" class="btn small" type="button" hidden>Join the game</button>
+      </div>
+
+      <!-- Lobby (before the first round) -->
+      <main id="lobby-view" class="lobby" hidden>
+        <section class="panel stack">
+          <h2>Lobby</h2>
+          <p class="muted">
+            Everyone sees the same 26 cards and the same rules. Exactly one set of 4 cards matches every rule.
+            The first player to submit it wins the round. You get one guess per round.
+          </p>
+          <button id="start-btn" class="btn primary big" type="button">Start round</button>
+          <p id="lobby-error" class="error" role="alert"></p>
+        </section>
+        <section class="panel stack">
+          <h2>Players <span id="lobby-count" class="muted small"></span></h2>
+          <ul id="lobby-players" class="plist"></ul>
+          <div id="lobby-reset"></div>
+        </section>
+        <div id="account-home"></div>
+      </main>
+
+      <!-- Round in progress, or results after a round -->
+      <main id="play-view" class="play" hidden>
+        <p id="headline" class="headline"></p>
+        <div class="play-grid">
+          <section class="board-col">
+            <div id="grid" class="grid" role="group" aria-label="Cards A to Z"></div>
+          </section>
+
+          <aside class="side-col">
+            <div id="result-box" class="result-box stack" hidden>
+              <p id="result-text" class="result-text"></p>
+              <button id="next-btn" class="btn primary big" type="button">Next round</button>
+              <p id="result-error" class="error" role="alert"></p>
+            </div>
+
+            <section class="rules-panel">
+              <p class="order-note">
+                The 4 cards are always read in alphabetical order (lowest number first), so “the first card” is
+                the one closest to A and “the fourth card” is the one closest to Z.
+              </p>
+              <ol id="rules" class="rules"></ol>
+            </section>
+
+            <div id="actionbar" class="actionbar" hidden>
+              <div id="slots" class="slots" aria-label="Selected cards"></div>
+              <button id="submit-btn" class="btn primary submit" type="button" disabled>Submit</button>
+            </div>
+            <p id="play-error" class="error" role="alert"></p>
+
+            <section class="panel stack">
+              <h2 id="players-title">Players</h2>
+              <ul id="play-players" class="plist"></ul>
+              <div id="reset-slot"></div>
+            </section>
+
+            <div id="end-round" class="confirm" data-action="endRound" hidden>
+              <button class="btn ghost confirm-open" type="button">End round and reveal</button>
+              <div class="confirm-ask" hidden>
+                <span>End the round for everyone and show the answer?</span>
+                <div class="row">
+                  <button class="btn danger confirm-yes" type="button">Yes, end and reveal</button>
+                  <button class="btn ghost confirm-no" type="button">Cancel</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="account-play"></div>
+          </aside>
+        </div>
+      </main>
+    </section>
+
+    <!-- Movable pieces (placed into the lobby or results view by app.js) -->
+    <div hidden>
+      <div id="reset-scores" class="confirm" data-action="resetScores">
+        <button class="btn ghost small confirm-open" type="button">Reset scores</button>
+        <div class="confirm-ask" hidden>
+          <span>Set everyone's score back to 0?</span>
+          <div class="row">
+            <button class="btn danger confirm-yes" type="button">Yes, reset</button>
+            <button class="btn ghost confirm-no" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <section id="account-panel" class="panel stack">
+        <h2>Your name</h2>
+        <form id="rename-form" class="row" novalidate>
+          <label for="rename-input" class="sr-only">New username</label>
+          <input id="rename-input" type="text" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" />
+          <button class="btn" type="submit">Change</button>
+        </form>
+        <p id="rename-msg" class="error" role="alert"></p>
+        <button id="leave-btn" class="btn ghost small" type="button">Leave the game</button>
+      </section>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
