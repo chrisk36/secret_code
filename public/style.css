@@ -403,6 +403,10 @@ input[type='text']:focus {
   outline-offset: 2px;
   transform: translateY(-3px);
 }
+.card.guess {
+  outline: 4px solid var(--danger);
+  outline-offset: 2px;
+}
 .card.dim {
   opacity: 0.3;
 }
@@ -440,6 +444,17 @@ input[type='text']:focus {
 .rules .tick {
   color: var(--ok);
   font-weight: 700;
+}
+.rules li.fail .tick {
+  color: var(--danger);
+}
+.rules li.fail .detail {
+  color: var(--text);
+}
+.guess-note {
+  font-size: 0.9rem;
+  color: var(--danger);
+  margin-bottom: 10px;
 }
 .rules .detail {
   grid-column: 2 / 4;
@@ -488,6 +503,31 @@ input[type='text']:focus {
 }
 .result-text {
   font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.toggle {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.toggle-btn {
+  flex: 1;
+  font: inherit;
+  font-size: 0.9rem;
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.toggle-btn + .toggle-btn {
+  border-left: 1px solid var(--line);
+}
+.toggle-btn[aria-pressed='true'] {
+  background: #3a3a3d;
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -556,7 +596,8 @@ input[type='text']:focus {
     margin-top: 1px;
   }
   .card.selected,
-  .card.solution {
+  .card.solution,
+  .card.guess {
     outline-width: 3px;
     outline-offset: 1px;
   }

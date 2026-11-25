@@ -100,6 +100,10 @@
           <aside class="side-col">
             <div id="result-box" class="result-box stack" hidden>
               <p id="result-text" class="result-text"></p>
+              <div id="view-toggle" class="toggle" role="group" aria-label="Show on the board" hidden>
+                <button class="toggle-btn" type="button" data-view="answer">Correct answer</button>
+                <button class="toggle-btn" type="button" data-view="guess">Your guess</button>
+              </div>
               <button id="next-btn" class="btn primary big" type="button">Next round</button>
               <p id="result-error" class="error" role="alert"></p>
             </div>
@@ -109,6 +113,7 @@
                 The 4 cards are always read in alphabetical order (lowest number first), so “the first card” is
                 the one closest to A and “the fourth card” is the one closest to Z.
               </p>
+              <p id="guess-note" class="guess-note" hidden></p>
               <ol id="rules" class="rules"></ol>
             </section>
 
@@ -143,12 +148,12 @@
 
     <!-- Movable pieces (placed into the lobby or results view by app.js) -->
     <div hidden>
-      <div id="reset-scores" class="confirm" data-action="resetScores">
-        <button class="btn ghost small confirm-open" type="button">Reset scores</button>
+      <div id="reset-game" class="confirm" data-action="resetGame">
+        <button class="btn ghost small confirm-open" type="button">Reset game</button>
         <div class="confirm-ask" hidden>
-          <span>Set everyone's score back to 0?</span>
+          <span>Reset all scores, start again from round 1, and send everyone back to the lobby?</span>
           <div class="row">
-            <button class="btn danger confirm-yes" type="button">Yes, reset</button>
+            <button class="btn danger confirm-yes" type="button">Yes, reset everything</button>
             <button class="btn ghost confirm-no" type="button">Cancel</button>
           </div>
         </div>

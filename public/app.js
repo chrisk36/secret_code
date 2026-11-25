@@ -72,6 +72,8 @@
     lobbyError: '',
     renameMsg: '',
     renameSynced: null,
+    resultKey: null,
+    resultView: 'answer', // after a round: 'answer' or 'guess'
   };
 
   // ---- socket -----------------------------------------------------------------------------------
@@ -222,6 +224,14 @@
     ui.token = null;
     ui.ownsToken = false;
     render();
+  });
+
+  // Results: switch between the correct answer and your own guess
+  document.querySelectorAll('#view-toggle .toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      ui.resultView = btn.dataset.view;
+      render();
+    });
   });
 
   // Rounds
@@ -438,7 +448,7 @@
     const between = mode !== 'round' && !!you;
     if (between) {
       place('account-panel', mode === 'lobby' ? 'account-home' : 'account-play');
-      place('reset-scores', mode === 'lobby' ? 'lobby-reset' : 'reset-slot');
+      place('reset-game', mode === 'lobby' ? 'lobby-reset' : 'reset-slot');
       const input = $('rename-input');
       if (ui.renameSynced !== you.name) {
         ui.renameSynced = you.name;
@@ -447,7 +457,7 @@
       $('rename-msg').textContent = ui.renameMsg;
     } else {
       park('account-panel');
-      park('reset-scores');
+      park('reset-game');
     }
 
     if (mode === 'lobby') renderLobby(s);
@@ -490,12 +500,23 @@
     const inRound = mode === 'round';
     const result = s.lastResult;
     const board = inRound ? s.round.board : result.board;
-    const solution = inRound ? [] : result.solution;
+
+    // Your own wrong guess (only ever sent to you): live while you're out, then after the round.
+    const guess = you ? (inRound ? you.guess : you.lastGuess) : null;
+    if (!inRound && ui.resultKey !== result.number) {
+      ui.resultKey = result.number;
+      ui.resultView = 'answer';
+    }
+    const showGuess = !!guess && (inRound || ui.resultView === 'guess');
+    const solution = inRound || showGuess ? [] : result.solution;
+    const guessCards = showGuess ? guess.cards : [];
 
     // Headline
     $('headline').textContent = inRound
       ? 'Find the 4 cards that match every rule.'
-      : `Round ${result.number}: the secret code was ${result.solution.join(' · ')}`;
+      : showGuess
+        ? `Round ${result.number}: your guess was ${guess.cards.join(' · ')}`
+        : `Round ${result.number}: the secret code was ${result.solution.join(' · ')}`;
 
     // Cards
     const selectable = canSelect();
@@ -510,22 +531,32 @@
       }
       const isSel = inRound && ui.selected.includes(card.letter);
       const isSol = solution.includes(card.letter);
+      const isGuess = guessCards.includes(card.letter);
       el.classList.toggle(`c-${card.color}`, true);
       for (const c of ['yellow', 'green', 'blue', 'purple', 'white']) if (c !== card.color) el.classList.remove(`c-${c}`);
       el.classList.toggle('selected', isSel);
       el.classList.toggle('solution', isSol);
-      el.classList.toggle('dim', !inRound && !isSol);
+      el.classList.toggle('guess', isGuess);
+      el.classList.toggle('dim', !inRound && !isSol && !isGuess);
       el.disabled = !selectable;
       el.setAttribute('aria-pressed', String(isSel));
       el.setAttribute(
         'aria-label',
-        `${card.letter}, ${card.number}, ${card.color} ${card.shape}${isSel ? ', selected' : ''}${isSol ? ', part of the answer' : ''}`,
+        `${card.letter}, ${card.number}, ${card.color} ${card.shape}${isSel ? ', selected' : ''}${isSol ? ', part of the answer' : ''}${isGuess ? ', your guess' : ''}`,
       );
     });
 
     // Rules
     const rulesEl = $('rules');
-    const rules = inRound ? s.round.rules.map((text) => ({ text })) : result.rules;
+    const rules = showGuess ? guess.rules : inRound ? s.round.rules.map((text) => ({ text })) : result.rules;
+    const ticked = showGuess || !inRound;
+    show('guess-note', showGuess);
+    if (showGuess) {
+      const broke = guess.rules.filter((r) => !r.ok).length;
+      $('guess-note').textContent = `Your guess (${guess.cards.join(' · ')}) broke ${broke} ${
+        broke === 1 ? 'rule' : 'rules'
+      }, marked ✗.`;
+    }
     rulesEl.replaceChildren(
       ...rules.map((rule, i) => {
         const li = document.createElement('li');
@@ -535,7 +566,8 @@
         const text = document.createElement('span');
         text.textContent = rule.text;
         li.append(num, text);
-        if (!inRound) {
+        if (ticked) {
+          li.classList.toggle('fail', !rule.ok);
           const tick = document.createElement('span');
           tick.className = 'tick';
           tick.textContent = rule.ok ? '✓' : '✗';
@@ -572,6 +604,10 @@
     show('result-box', !inRound);
     if (!inRound) {
       $('result-text').textContent = resultText(result, you);
+      show('view-toggle', !!guess);
+      document.querySelectorAll('#view-toggle .toggle-btn').forEach((btn) => {
+        btn.setAttribute('aria-pressed', String(btn.dataset.view === (showGuess ? 'guess' : 'answer')));
+      });
       show('next-btn', !!you);
       $('next-btn').disabled = !ui.connected;
       $('result-error').textContent = ui.lobbyError;

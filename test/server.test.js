@@ -294,13 +294,55 @@ describe('server', () => {
     assert.deepEqual(a.s.state.lastResult.solution, ctx.solution());
   });
 
-  test('reset scores', async () => {
+  test('reset game: scores to 0, round count restarts, back to the lobby', async () => {
     const a = await player('Alice');
     await call(a.s, 'start');
     await call(a.s, 'submit', { cards: ctx.solution() });
-    await until(() => a.s.state.you.score === 1, 'score');
-    assert.equal((await call(a.s, 'resetScores')).ok, true);
+    await until(() => a.s.state.you.score === 1 && a.s.state.lastResult, 'score');
+
+    assert.equal((await call(a.s, 'resetGame')).ok, true);
     await until(() => a.s.state.you.score === 0, 'reset');
+    assert.equal(a.s.state.lastResult, null, 'lobby, not the last results');
+    assert.equal(a.s.state.you.lastGuess, null);
+
+    await call(a.s, 'start');
+    await until(() => a.s.state.phase === 'round', 'round');
+    assert.equal(a.s.state.round.number, 1);
+    assert.equal((await call(a.s, 'resetGame')).code, 'in-round');
+  });
+
+  test('a wrong guess is checked rule by rule, shown only to that player', async () => {
+    const a = await player('Alice');
+    const b = await player('Bob');
+    await call(a.s, 'start');
+    const wrong = ctx.wrongAnswer();
+    await call(a.s, 'submit', { cards: wrong });
+
+    await until(() => a.s.state.you.guess, 'guess analysis');
+    const g = a.s.state.you.guess;
+    assert.deepEqual(g.cards, [...wrong].sort());
+    assert.equal(g.rules.length, a.s.state.round.rules.length);
+    assert.ok(g.rules.some((r) => !r.ok), 'at least one rule is broken');
+    assert.ok(g.rules.every((r) => r.text && r.detail));
+    assert.ok(!JSON.stringify(a.s.state).includes('solution'), 'still no solution during the round');
+
+    // Bob sees neither Alice's cards nor her analysis
+    await until(() => b.s.state.players.find((p) => p.name === 'Alice').status === 'out', 'out');
+    assert.equal(b.s.state.you.guess, null);
+    assert.ok(!JSON.stringify(b.s.state).includes('"guess":{'));
+
+    // Survives a refresh
+    a.s.disconnect();
+    const { s } = await refresh(a.token);
+    assert.deepEqual(s.state.you.guess, g);
+
+    // After the round: Alice can compare, Bob (who never guessed wrong) has nothing to compare
+    await call(b.s, 'submit', { cards: ctx.solution() });
+    await until(() => s.state.lastResult?.outcome === 'solved', 'solved');
+    assert.deepEqual(s.state.you.lastGuess, g);
+    assert.equal(s.state.you.guess, null);
+    await until(() => b.s.state.lastResult, 'Bob result');
+    assert.equal(b.s.state.you.lastGuess, null);
   });
 
   test('opening a second tab with the same stored ID does not hijack the first', async () => {

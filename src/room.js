@@ -19,6 +19,16 @@ export function validateName(raw) {
 
 const fail = (code, error) => ({ ok: false, code, error });
 
+/** Check a set of cards against every rule: [{ text, ok, detail }]. */
+export function checkCards(puzzle, cards) {
+  const { board, rules } = puzzle;
+  return rules.map((rule) => ({
+    text: rule.text,
+    ok: evaluateRule(rule, board, cards),
+    detail: explainRule(rule, board, cards),
+  }));
+}
+
 export class Room {
   /**
    * @param {object} opts
@@ -46,6 +56,7 @@ export class Room {
     this.phase = 'lobby'; // 'lobby' | 'round'
     this.round = null;
     this.lastResult = null;
+    this.lastGuesses = new Map(); // player id -> their wrong guess in the last finished round (private)
     this.roundNumber = 0;
     this.onChange = () => {};
   }
@@ -141,6 +152,7 @@ export class Room {
       solutionLetters: puzzle.solution.map((i) => LETTERS[i]),
       participants: new Set(this.players.keys()),
       wrong: new Set(),
+      guesses: new Map(), // player id -> { cards, rules } for wrong guesses; only ever sent to that player
       startedAt: this.now(),
     };
     this.phase = 'round';
@@ -172,6 +184,7 @@ export class Room {
     }
 
     r.wrong.add(id);
+    r.guesses.set(id, { cards: letters, rules: checkCards(r.puzzle, letters) });
     this.changed();
     this.checkAllWrong();
     return { ok: true, correct: false };
@@ -185,10 +198,14 @@ export class Room {
     return { ok: true };
   }
 
-  resetScores(id) {
+  /** Start over: scores to 0, round count back to 1, last results cleared, everyone to the lobby. */
+  resetGame(id) {
     if (!this.players.has(id)) return fail('not-player', 'Join the game first.');
-    if (this.phase === 'round') return fail('in-round', 'You can reset scores after this round.');
+    if (this.phase === 'round') return fail('in-round', 'You can reset the game after this round.');
     for (const p of this.players.values()) p.score = 0;
+    this.roundNumber = 0;
+    this.lastResult = null;
+    this.lastGuesses = new Map();
     this.changed();
     return { ok: true };
   }
@@ -209,7 +226,7 @@ export class Room {
 
   finishRound(outcome, { winner = null, endedBy = null } = {}) {
     const r = this.round;
-    const { board, rules, solution } = r.puzzle;
+    const { board, solution } = r.puzzle;
     this.lastResult = {
       number: r.number,
       outcome, // 'solved' | 'all-wrong' | 'ended' | 'abandoned'
@@ -218,12 +235,9 @@ export class Room {
       endedByName: endedBy?.name ?? null,
       board,
       solution: r.solutionLetters,
-      rules: rules.map((rule) => ({
-        text: rule.text,
-        ok: evaluateRule(rule, board, solution),
-        detail: explainRule(rule, board, solution),
-      })),
+      rules: checkCards(r.puzzle, solution),
     };
+    this.lastGuesses = r.guesses;
     this.phase = 'lobby';
     this.round = null;
     this.changed();
@@ -268,7 +282,17 @@ export class Room {
       phase: this.phase,
       maxPlayers: this.maxPlayers,
       watchers,
-      you: me ? { id: me.id, name: me.name, score: me.score, status: this.statusOf(me) } : null,
+      you: me
+        ? {
+            id: me.id,
+            name: me.name,
+            score: me.score,
+            status: this.statusOf(me),
+            // Your own wrong guess, checked rule by rule: during the round, then after it ends.
+            guess: this.phase === 'round' ? r.guesses.get(me.id) ?? null : null,
+            lastGuess: this.phase === 'lobby' ? this.lastGuesses.get(me.id) ?? null : null,
+          }
+        : null,
       players: [...this.players.values()].map((p) => ({
         id: p.id,
         name: p.name,

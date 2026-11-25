@@ -166,9 +166,9 @@ export function createServer({ room = new Room(), tickMs = 2000 } = {}) {
       return p ? room.endRound(p.id) : needPlayer();
     });
 
-    on('resetScores', () => {
+    on('resetGame', () => {
       const p = me();
-      return p ? room.resetScores(p.id) : needPlayer();
+      return p ? room.resetGame(p.id) : needPlayer();
     });
 
     socket.on('disconnect', () => {
