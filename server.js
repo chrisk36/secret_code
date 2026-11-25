@@ -52,7 +52,29 @@ export function createServer({ room = new Room(), tickMs = 2000 } = {}) {
       for (const s of helloSockets()) sendState(s);
     });
   }
-  room.onChange = broadcast;
+  room.onChange = () => {
+    scheduleDeadline();
+    broadcast();
+  };
+
+  // End the round exactly when the guess window closes (the regular tick is only a backstop).
+  let deadlineTimer = null;
+  let deadlineAt = null;
+  function scheduleDeadline() {
+    const at = room.phase === 'round' ? room.round.deadline : null;
+    if (at === deadlineAt) return;
+    clearTimeout(deadlineTimer);
+    deadlineTimer = null;
+    deadlineAt = at;
+    if (at === null) return;
+    deadlineTimer = setTimeout(() => {
+      deadlineTimer = null;
+      deadlineAt = null;
+      room.tick();
+      scheduleDeadline(); // in case the clock said "not yet"
+    }, Math.max(0, at - room.now()) + 10);
+    deadlineTimer.unref();
+  }
 
   // ---- helpers ------------------------------------------------------------
 
@@ -191,6 +213,7 @@ export function createServer({ room = new Room(), tickMs = 2000 } = {}) {
     room,
     close() {
       clearInterval(timer);
+      clearTimeout(deadlineTimer);
       return new Promise((resolve) => io.close(() => resolve()));
     },
   };

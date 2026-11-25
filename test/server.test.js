@@ -139,7 +139,7 @@ describe('server', () => {
     await until(() => a.s.state.phase === 'round', 'round');
     const st = a.s.state;
     assert.equal(st.lastResult, null);
-    assert.deepEqual(Object.keys(st.round).sort(), ['board', 'number', 'rules']);
+    assert.deepEqual(Object.keys(st.round).sort(), ['board', 'firstGuesserName', 'number', 'rules', 'timeLeftMs']);
     assert.ok(st.round.rules.every((r) => typeof r === 'string'));
     assert.ok(!JSON.stringify(st).includes('solution'));
   });
@@ -228,6 +228,60 @@ describe('server', () => {
     ctx.clock.t += 11_000;
     ctx.room.tick();
     await until(() => a.s.state.lastResult?.outcome === 'all-wrong', 'all-wrong after grace');
+  });
+
+  test('the first guess starts a 45-second countdown; the round ends when it runs out', async () => {
+    const a = await player('Alice');
+    const b = await player('Bob');
+    const c = await player('Carol');
+    await call(a.s, 'start');
+    await until(() => b.s.state.phase === 'round', 'round');
+    assert.equal(b.s.state.round.timeLeftMs, null, 'no timer before anyone guesses');
+
+    await call(a.s, 'submit', { cards: ctx.wrongAnswer() });
+    await until(() => b.s.state.round?.timeLeftMs === 45_000, 'timer for Bob');
+    assert.equal(c.s.state.round.timeLeftMs, 45_000);
+    assert.equal(b.s.state.round.firstGuesserName, 'Alice');
+
+    // A second wrong guess doesn't restart the clock.
+    ctx.clock.t += 20_000;
+    await call(b.s, 'submit', { cards: ctx.wrongAnswer() });
+    await until(() => c.s.state.round?.timeLeftMs === 25_000, 'clock keeps running');
+    assert.equal(c.s.state.round.firstGuesserName, 'Alice');
+
+    ctx.clock.t += 24_000;
+    ctx.room.tick();
+    assert.equal(ctx.room.phase, 'round', 'still 1 s left');
+
+    ctx.clock.t += 1_000;
+    ctx.room.tick();
+    await until(() => c.s.state.lastResult?.outcome === 'timeout', 'timeout');
+    assert.deepEqual(c.s.state.lastResult.solution, ctx.solution());
+    assert.ok(c.s.state.players.every((p) => p.score === 0));
+    assert.equal(c.s.state.phase, 'lobby');
+  });
+
+  test('a correct answer inside the countdown still wins', async () => {
+    const a = await player('Alice');
+    const b = await player('Bob');
+    await call(a.s, 'start');
+    await call(a.s, 'submit', { cards: ctx.wrongAnswer() });
+    ctx.clock.t += 44_000;
+    ctx.room.tick();
+    assert.equal((await call(b.s, 'submit', { cards: ctx.solution() })).correct, true);
+    await until(() => a.s.state.lastResult?.outcome === 'solved', 'solved');
+    assert.equal(a.s.state.lastResult.winnerName, 'Bob');
+  });
+
+  test('the countdown restarts each round and is gone after a reset', async () => {
+    const a = await player('Alice');
+    await player('Bob');
+    await call(a.s, 'start');
+    await call(a.s, 'submit', { cards: ctx.wrongAnswer() });
+    await call(a.s, 'endRound');
+    await call(a.s, 'start');
+    await until(() => a.s.state.phase === 'round' && a.s.state.round.number === 2, 'round 2');
+    assert.equal(a.s.state.round.timeLeftMs, null);
   });
 
   test('mid-round join is a spectator until the next round', async () => {
@@ -377,4 +431,32 @@ describe('server', () => {
     const res = await call(back, 'hello', { token: b.token, takeover: true });
     assert.equal(res.you, null, 'removed player has to join again');
   });
+});
+
+test('the server ends the round on time without waiting for the periodic tick', async () => {
+  const room = new Room({ guessWindowMs: 200 });
+  const srv = createServer({ room, tickMs: 3_600_000 });
+  await new Promise((resolve) => srv.server.listen(0, resolve));
+  const url = `http://localhost:${srv.server.address().port}`;
+  const socks = [];
+  try {
+    const join = async (name) => {
+      const s = connect(url, { transports: ['websocket'], forceNew: true, reconnection: false });
+      socks.push(s);
+      s.on('state', (st) => (s.state = st));
+      await call(s, 'hello', {});
+      await call(s, 'join', { name });
+      return s;
+    };
+    const a = await join('Alice');
+    const b = await join('Bob');
+    await call(a, 'start');
+    await call(a, 'submit', { cards: ['A', 'B', 'C', 'D'] }).then(async (res) => {
+      if (res.correct) return; // astronomically unlikely; nothing to time
+      await until(() => b.state?.lastResult?.outcome === 'timeout', 'timeout fired', 3000);
+    });
+  } finally {
+    for (const s of socks) s.disconnect();
+    await srv.close();
+  }
 });

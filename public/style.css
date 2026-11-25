@@ -314,6 +314,35 @@ input[type='text']:focus {
 
 /* ---- Play layout ----------------------------------------------------------- */
 
+.timer {
+  max-width: 1000px;
+  margin: 0 auto 12px;
+  padding: 8px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.timer-clock {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-strong);
+  min-width: 3.2ch;
+}
+.timer-text {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.timer.urgent {
+  border-color: var(--danger);
+}
+.timer.urgent .timer-clock {
+  color: var(--danger);
+}
+
 .headline {
   max-width: 1000px;
   margin: 0 auto 14px;
@@ -603,6 +632,17 @@ input[type='text']:focus {
   }
   .headline {
     font-size: 1rem;
+  }
+  /* Keep the countdown on screen while scrolling through cards and rules */
+  .timer {
+    position: sticky;
+    top: 0;
+    z-index: 9;
+    padding: 6px 12px;
+    box-shadow: 0 6px 12px -6px rgba(0, 0, 0, 0.6);
+  }
+  .timer-text {
+    font-size: 0.85rem;
   }
   .topbar {
     gap: 8px;

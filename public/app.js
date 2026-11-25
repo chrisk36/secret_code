@@ -74,6 +74,7 @@
     renameSynced: null,
     resultKey: null,
     resultView: 'answer', // after a round: 'answer' or 'guess'
+    deadlineAt: null, // local Date.now() when the guess window closes
   };
 
   // ---- socket -----------------------------------------------------------------------------------
@@ -114,8 +115,15 @@
       ui.playError = '';
     }
     ui.state = s;
+    const left = s.phase === 'round' && s.round ? s.round.timeLeftMs : null;
+    ui.deadlineAt = typeof left === 'number' ? Date.now() + left : null;
     render();
   });
+
+  // Countdown: redraw just the timer a few times a second.
+  setInterval(() => {
+    if (ui.deadlineAt !== null) renderTimer();
+  }, 250);
 
   socket.on('replaced', () => {
     ui.replaced = true;
@@ -619,8 +627,27 @@
     }`;
     renderPlayers($('play-players'), s, !inRound);
 
+    renderTimer();
+
     show('end-round', inRound && !!you);
     if (!inRound) $('end-round')._close();
+  }
+
+  function renderTimer() {
+    const s = ui.state;
+    const active = !!(s && s.phase === 'round' && s.round && ui.deadlineAt !== null && !$('play-view').hidden);
+    show('timer', active);
+    if (!active) return;
+    const secs = Math.max(0, Math.ceil((ui.deadlineAt - Date.now()) / 1000));
+    $('timer-clock').textContent = `0:${String(secs).padStart(2, '0')}`;
+    $('timer').classList.toggle('urgent', secs <= 10);
+    const you = s.you;
+    const first = you && s.round.firstGuesserName === you.name ? 'You guessed first' : `${s.round.firstGuesserName} guessed first`;
+    let text;
+    if (secs === 0) text = "Time's up…";
+    else if (you && you.status === 'playing') text = `${first}. Submit before time runs out!`;
+    else text = `${first}. The round ends when time runs out.`;
+    $('timer-text').textContent = text;
   }
 
   function resultText(r, you) {
@@ -630,6 +657,8 @@
         return mine(r.winnerId) ? 'You cracked the code! +1 point.' : `${r.winnerName} cracked the code! +1 point.`;
       case 'all-wrong':
         return 'Everyone guessed wrong. Nobody wins this round.';
+      case 'timeout':
+        return "Time's up! Nobody cracked the code.";
       case 'ended':
         return `${you && r.endedByName === you.name ? 'You' : r.endedByName} ended the round. No winner.`;
       case 'abandoned':

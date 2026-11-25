@@ -5,7 +5,7 @@ A real-time multiplayer browser puzzle game. Everyone sees the same 26 cards (A�
 - One shared room, no room codes, up to 8 players (more people can spectate).
 - One guess per player per round. A wrong guess locks you out until the next round, and refreshing the page doesn't undo that.
 - After a wrong guess, you (and only you) see your 4 cards outlined and each rule marked ✓ or ✗ for them, with the working. The correct cards stay hidden until the round ends. Then the results screen has a **Correct answer / Your guess** switch.
-- No timer. Any player can choose **End round and reveal** (with a confirm step).
+- No time limit until someone guesses. The first guess starts a **45-second countdown** for everyone else. When it runs out, the round ends and the answer is revealed. Any player can also choose **End round and reveal** (with a confirm step).
 - Scores last for the session and are kept in memory only. **Reset game** (between rounds, with a confirm step) sets every score to 0, restarts at round 1, and sends everyone back to the lobby.
 
 ## Run it locally

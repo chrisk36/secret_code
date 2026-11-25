@@ -6,6 +6,7 @@ import { generatePuzzle, LETTERS, evaluateRule, explainRule } from './puzzle.js'
 
 export const MAX_PLAYERS = 8;
 export const NAME_MAX = 16;
+export const GUESS_WINDOW_MS = 45 * 1000; // after the first guess, everyone else has this long
 
 /** Validate and normalise a username. Returns { name } or { error }. */
 export function validateName(raw) {
@@ -37,6 +38,7 @@ export class Room {
    * @param {number} [opts.maxPlayers]
    * @param {number} [opts.lobbyTimeoutMs]  remove players disconnected this long (lobby only)
    * @param {number} [opts.graceMs]         a disconnect shorter than this (e.g. a refresh) still counts as present
+   * @param {number} [opts.guessWindowMs]   time left for everyone else once the first guess is in
    */
   constructor({
     makePuzzle = () => generatePuzzle(),
@@ -44,12 +46,14 @@ export class Room {
     maxPlayers = MAX_PLAYERS,
     lobbyTimeoutMs = 3 * 60 * 1000,
     graceMs = 10 * 1000,
+    guessWindowMs = GUESS_WINDOW_MS,
   } = {}) {
     this.makePuzzle = makePuzzle;
     this.now = now;
     this.maxPlayers = maxPlayers;
     this.lobbyTimeoutMs = lobbyTimeoutMs;
     this.graceMs = graceMs;
+    this.guessWindowMs = guessWindowMs;
 
     this.players = new Map(); // id -> player
     this.byToken = new Map(); // secret token -> id
@@ -154,6 +158,8 @@ export class Room {
       wrong: new Set(),
       guesses: new Map(), // player id -> { cards, rules } for wrong guesses; only ever sent to that player
       startedAt: this.now(),
+      deadline: null, // set by the first guess: the round ends at this time
+      firstGuesserName: null,
     };
     this.phase = 'round';
     this.changed();
@@ -185,6 +191,10 @@ export class Room {
 
     r.wrong.add(id);
     r.guesses.set(id, { cards: letters, rules: checkCards(r.puzzle, letters) });
+    if (r.deadline === null) {
+      r.deadline = this.now() + this.guessWindowMs;
+      r.firstGuesserName = p.name;
+    }
     this.changed();
     this.checkAllWrong();
     return { ok: true, correct: false };
@@ -229,7 +239,7 @@ export class Room {
     const { board, solution } = r.puzzle;
     this.lastResult = {
       number: r.number,
-      outcome, // 'solved' | 'all-wrong' | 'ended' | 'abandoned'
+      outcome, // 'solved' | 'all-wrong' | 'ended' | 'timeout' | 'abandoned'
       winnerId: winner?.id ?? null,
       winnerName: winner?.name ?? null,
       endedByName: endedBy?.name ?? null,
@@ -248,6 +258,10 @@ export class Room {
     const now = this.now();
     if (this.phase === 'round') {
       if (this.checkAllWrong()) return;
+      if (this.round.deadline !== null && now >= this.round.deadline) {
+        this.finishRound('timeout');
+        return;
+      }
       // Nobody left at all for a long time: close the round so the room can clean up.
       const players = [...this.players.values()];
       if (players.length && players.every((p) => !p.connected && now - p.disconnectedAt >= this.lobbyTimeoutMs)) {
@@ -306,6 +320,9 @@ export class Room {
               number: r.number,
               board: r.puzzle.board,
               rules: r.puzzle.rules.map((rule) => rule.text),
+              // Milliseconds left once someone has guessed (relative, so client clocks don't matter).
+              timeLeftMs: r.deadline === null ? null : Math.max(0, r.deadline - this.now()),
+              firstGuesserName: r.firstGuesserName,
             }
           : null,
       lastResult: this.lastResult,
